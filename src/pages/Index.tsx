@@ -2,6 +2,8 @@ import Navbar from "@/components/Navbar";
 import DesktopMockup from "@/components/DesktopMockup";
 import MobileMockup from "@/components/MobileMockup";
 import FeaturesSection from "@/components/FeaturesSection";
+import TestimonialsSection from "@/components/TestimonialsSection";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -73,6 +75,12 @@ const Index = () => {
 
       {/* Features Section */}
       <FeaturesSection />
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

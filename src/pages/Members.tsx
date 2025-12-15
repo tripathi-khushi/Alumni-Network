@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import CommunitySection from "@/components/CommunitySection";
+import Footer from "@/components/Footer";
 
 const Members = () => {
   return (
@@ -35,6 +36,8 @@ const Members = () => {
       <div className="pt-24">
         <CommunitySection />
       </div>
+
+      <Footer />
     </div>
   );
 };

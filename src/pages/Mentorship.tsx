@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import MentorshipSection from "@/components/MentorshipSection";
+import Footer from "@/components/Footer";
 
 const Mentorship = () => {
   return (
@@ -35,6 +36,8 @@ const Mentorship = () => {
       <div className="pt-24">
         <MentorshipSection />
       </div>
+
+      <Footer />
     </div>
   );
 };

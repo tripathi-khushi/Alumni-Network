@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import EventsSection from "@/components/EventsSection";
+import Footer from "@/components/Footer";
 
 const Events = () => {
   return (
@@ -35,6 +36,8 @@ const Events = () => {
       <div className="pt-24">
         <EventsSection />
       </div>
+
+      <Footer />
     </div>
   );
 };
