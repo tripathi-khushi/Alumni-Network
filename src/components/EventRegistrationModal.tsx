@@ -8,7 +8,7 @@ interface Event {
   date: string;
   time: string;
   location: string;
-  attendees: number;
+  attendees: Array<{ user: string; name: string; email: string }>;
   category: string;
   description: string;
 }
@@ -132,7 +132,7 @@ const EventRegistrationModal = ({ isOpen, onClose, event }: EventRegistrationMod
                 </div>
                 <div className="flex items-center gap-2 text-foreground/70 text-sm">
                   <Users className="w-4 h-4 text-amber-400" />
-                  <span>{event.attendees} attendees registered</span>
+                  <span>{event.attendees?.length || 0} attendees registered</span>
                 </div>
               </div>
             </div>

@@ -1,48 +1,147 @@
-import { X, MessageSquare, Heart, Send, User } from "lucide-react";
-import { useState } from "react";
+import { X, MessageSquare, Heart, Send, User, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../lib/api";
 
 interface Post {
-  author: string;
-  batch: string;
+  _id: string;
+  author: {
+    _id: string;
+    name: string;
+    batch?: string;
+  };
   title: string;
-  excerpt: string;
-  replies: number;
-  likes: number;
-  timeAgo: string;
+  content: string;
+  category: string;
+  likes: string[];
+  replies: Array<{
+    _id: string;
+    author: {
+      _id: string;
+      name: string;
+      batch?: string;
+    };
+    content: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
 }
 
 interface PostDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   post: Post | null;
+  onPostUpdate?: (post: Post) => void;
+  onPostDelete?: (postId: string) => void;
 }
 
-const PostDetailModal = ({ isOpen, onClose, post }: PostDetailModalProps) => {
+const PostDetailModal = ({ isOpen, onClose, post, onPostUpdate, onPostDelete }: PostDetailModalProps) => {
   const [replyText, setReplyText] = useState("");
   const [isLiked, setIsLiked] = useState(false);
-  const [likes, setLikes] = useState(post?.likes || 0);
-  const [replies, setReplies] = useState<Array<{ author: string; content: string; time: string }>>([
-    { author: "John Doe", content: "Great post! Very helpful.", time: "1h ago" },
-    { author: "Jane Smith", content: "I have similar experience. Would love to connect!", time: "2h ago" },
-  ]);
+  const [likes, setLikes] = useState(0);
+  const [localPost, setLocalPost] = useState<Post | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { user } = useAuth();
 
-  if (!isOpen || !post) return null;
+  useEffect(() => {
+    if (post) {
+      setLocalPost(post);
+      setLikes(post.likes.length);
+      setIsLiked(user ? post.likes.includes(user.id) : false);
+    }
+  }, [post, user]);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
+  if (!isOpen || !post || !localPost) return null;
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
   };
 
-  const handleReply = (e: React.FormEvent) => {
+  const handleLike = async () => {
+    try {
+      const response = await api.post(`/posts/${post._id}/like`);
+      setIsLiked(response.data.liked);
+      setLikes(response.data.likes);
+      
+      // Update parent component
+      if (onPostUpdate) {
+        const updatedPost = { ...localPost, likes: [...(response.data.liked ? [...localPost.likes, user!.id] : localPost.likes.filter((id: string) => id !== user!.id))] };
+        setLocalPost(updatedPost);
+        onPostUpdate(updatedPost);
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  };
+
+  const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || isSubmitting) return;
 
-    setReplies([
-      ...replies,
-      { author: "You", content: replyText, time: "Just now" }
-    ]);
-    setReplyText("");
+    try {
+      setIsSubmitting(true);
+      const response = await api.post(`/posts/${post._id}/reply`, { content: replyText });
+      
+      // Update local state with new reply
+      setLocalPost(response.data);
+      setReplyText("");
+      
+      // Update parent component
+      if (onPostUpdate) {
+        onPostUpdate(response.data);
+      }
+    } catch (error) {
+      console.error('Error posting reply:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await api.delete(`/posts/${post._id}`);
+      
+      // Notify parent component
+      if (onPostDelete) {
+        onPostDelete(post._id);
+      }
+      
+      // Close modal
+      onClose();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Check if current user is the post author
+  const isAuthor = user && localPost && localPost.author._id === user.id;
+
+  // Debug logging - remove after testing
+  if (localPost) {
+    console.log('Auth check:', {
+      hasUser: !!user,
+      authorId: localPost.author._id,
+      userId: user?.id,
+      isAuthor
+    });
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -62,21 +161,33 @@ const PostDetailModal = ({ isOpen, onClose, post }: PostDetailModalProps) => {
           <X className="w-5 h-5 text-foreground/70" />
         </button>
 
+        {/* Delete Button (only for author) */}
+        {isAuthor && (
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="absolute top-4 right-16 w-8 h-8 rounded-full glass-dark flex items-center justify-center hover:bg-red-500/20 transition-all z-10 group"
+            title="Delete post"
+          >
+            <Trash2 className="w-4 h-4 text-foreground/70 group-hover:text-red-400" />
+          </button>
+        )}
+
         {/* Post Header */}
         <div className="mb-6">
           <div className="flex items-start gap-4 mb-4">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-              {post.author.charAt(0)}
+              {localPost.author.name.charAt(0)}
             </div>
             <div className="flex-1">
-              <h3 className="text-foreground font-bold">{post.author}</h3>
-              <p className="text-foreground/60 text-sm">{post.batch}</p>
-              <p className="text-foreground/40 text-xs">{post.timeAgo}</p>
+              <h3 className="text-foreground font-bold">{localPost.author.name}</h3>
+              <p className="text-foreground/60 text-sm">{localPost.author.batch || 'Alumni'}</p>
+              <p className="text-foreground/40 text-xs">{getTimeAgo(localPost.createdAt)}</p>
             </div>
           </div>
           
-          <h2 className="text-2xl font-bold text-foreground mb-4">{post.title}</h2>
-          <p className="text-foreground/70 leading-relaxed">{post.excerpt}</p>
+          <h2 className="text-2xl font-bold text-foreground mb-4">{localPost.title}</h2>
+          <p className="text-foreground/70 leading-relaxed whitespace-pre-wrap">{localPost.content}</p>
         </div>
 
         {/* Engagement Stats */}
@@ -92,31 +203,35 @@ const PostDetailModal = ({ isOpen, onClose, post }: PostDetailModalProps) => {
           </button>
           <div className="flex items-center gap-2 text-foreground/60">
             <MessageSquare className="w-5 h-5" />
-            <span className="font-medium">{replies.length}</span>
+            <span className="font-medium">{localPost.replies.length}</span>
           </div>
         </div>
 
         {/* Replies Section */}
         <div className="mb-6">
-          <h3 className="text-lg font-bold text-foreground mb-4">Replies ({replies.length})</h3>
-          <div className="space-y-4 max-h-60 overflow-y-auto">
-            {replies.map((reply, index) => (
-              <div key={index} className="glass-dark rounded-lg p-4">
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                    {reply.author.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-foreground font-semibold text-sm">{reply.author}</span>
-                      <span className="text-foreground/40 text-xs">{reply.time}</span>
+          <h3 className="text-lg font-bold text-foreground mb-4">Replies ({localPost.replies.length})</h3>
+          {localPost.replies.length === 0 ? (
+            <p className="text-foreground/40 text-center py-8">No replies yet. Be the first to reply!</p>
+          ) : (
+            <div className="space-y-4 max-h-60 overflow-y-auto">
+              {localPost.replies.map((reply) => (
+                <div key={reply._id} className="glass-dark rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {reply.author.name.charAt(0)}
                     </div>
-                    <p className="text-foreground/70 text-sm">{reply.content}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-foreground font-semibold text-sm">{reply.author.name}</span>
+                        <span className="text-foreground/40 text-xs">{getTimeAgo(reply.createdAt)}</span>
+                      </div>
+                      <p className="text-foreground/70 text-sm whitespace-pre-wrap">{reply.content}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Reply Form */}
@@ -139,11 +254,11 @@ const PostDetailModal = ({ isOpen, onClose, post }: PostDetailModalProps) => {
           <div className="flex justify-end mt-3">
             <button
               type="submit"
-              disabled={!replyText.trim()}
+              disabled={!replyText.trim() || isSubmitting}
               className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg px-6 py-2 text-sm font-medium text-white hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
             >
               <Send className="w-4 h-4" />
-              <span>Post Reply</span>
+              <span>{isSubmitting ? 'Posting...' : 'Post Reply'}</span>
             </button>
           </div>
         </form>

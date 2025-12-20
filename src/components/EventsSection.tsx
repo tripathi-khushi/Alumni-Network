@@ -48,9 +48,14 @@ const EventsSection = () => {
   const { isAuthenticated } = useAuth();
 
   const handleRegisterClick = (event: typeof upcomingEvents[0]) => {
+    console.log('Register clicked for event:', event);
+    console.log('Is authenticated:', isAuthenticated);
+    
     if (!isAuthenticated) {
+      console.log('Opening auth modal...');
       setIsAuthModalOpen(true);
     } else {
+      console.log('Opening registration modal...');
       setSelectedEvent(event);
       setIsRegistrationModalOpen(true);
     }

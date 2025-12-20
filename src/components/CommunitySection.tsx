@@ -1,8 +1,34 @@
-import { MessageSquare, TrendingUp, Lightbulb, Briefcase, Heart, Code } from "lucide-react";
-import { useState } from "react";
+import { MessageSquare, TrendingUp, Lightbulb, Briefcase, Heart, Code, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 import PostDetailModal from "./PostDetailModal";
+import CreatePostModal from "./CreatePostModal";
 import { useAuth } from "../contexts/AuthContext";
 import AuthModal from "./AuthModal";
+import api from "../lib/api";
+
+interface Post {
+  _id: string;
+  author: {
+    _id: string;
+    name: string;
+    batch?: string;
+  };
+  title: string;
+  content: string;
+  category: string;
+  likes: string[];
+  replies: Array<{
+    _id: string;
+    author: {
+      _id: string;
+      name: string;
+      batch?: string;
+    };
+    content: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
+}
 
 const CommunitySection = () => {
   const discussions = [
@@ -40,36 +66,6 @@ const CommunitySection = () => {
     },
   ];
 
-  const recentPosts = [
-    {
-      author: "Alex Kumar",
-      batch: "Class of 2018",
-      title: "Looking for Senior Frontend Developers",
-      excerpt: "We're hiring at my company! Looking for experienced React developers...",
-      replies: 24,
-      likes: 45,
-      timeAgo: "2h ago",
-    },
-    {
-      author: "Maya Patel",
-      batch: "Class of 2016",
-      title: "Transition from Engineering to Product Management?",
-      excerpt: "Has anyone made this switch? Would love to hear your experiences...",
-      replies: 18,
-      likes: 32,
-      timeAgo: "5h ago",
-    },
-    {
-      author: "Raj Mehta",
-      batch: "Class of 2020",
-      title: "Successfully launched my AI startup!",
-      excerpt: "After 2 years of hard work, we just launched our product. Thanks to all...",
-      replies: 56,
-      likes: 128,
-      timeAgo: "1d ago",
-    },
-  ];
-
   const communityStats = [
     { value: "2.5K+", label: "Active Members" },
     { value: "500+", label: "Discussions" },
@@ -77,12 +73,44 @@ const CommunitySection = () => {
     { value: "95%", label: "Response Rate" },
   ];
 
-  const [selectedPost, setSelectedPost] = useState<typeof recentPosts[0] | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  const handlePostClick = (post: typeof recentPosts[0]) => {
+  // Fetch posts from API
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/posts');
+        setPosts(response.data);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handlePostClick = (post: Post) => {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
     } else {
@@ -94,7 +122,24 @@ const CommunitySection = () => {
   const handleExploreClick = () => {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
+    } else {
+      setIsCreateModalOpen(true);
     }
+  };
+
+  const handlePostCreated = (newPost: Post) => {
+    setPosts([newPost, ...posts]);
+    setIsCreateModalOpen(false);
+  };
+
+  const handlePostUpdated = (updatedPost: Post) => {
+    setPosts(posts.map(p => p._id === updatedPost._id ? updatedPost : p));
+    setSelectedPost(updatedPost);
+  };
+
+  const handlePostDeleted = (postId: string) => {
+    setPosts(posts.filter(p => p._id !== postId));
+    setIsPostModalOpen(false);
   };
 
   return (
@@ -165,43 +210,65 @@ const CommunitySection = () => {
 
         {/* Recent Posts */}
         <div className="mb-12">
-          <h3 className="text-2xl font-bold text-foreground mb-8">Recent Posts</h3>
-          <div className="space-y-4">
-            {recentPosts.map((post, index) => (
-              <div
-                key={index}
-                onClick={() => handlePostClick(post)}
-                className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl font-bold text-foreground">Recent Posts</h3>
+            {isAuthenticated && (
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-6 py-2 text-sm font-medium text-white hover:scale-105 transition-all shadow-lg"
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                    {post.author.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="text-lg font-bold text-foreground">{post.author}</h4>
-                        <p className="text-amber-400/80 text-xs">{post.batch}</p>
-                      </div>
-                      <span className="text-foreground/50 text-xs">{post.timeAgo}</span>
+                <Plus className="w-4 h-4" />
+                <span>Create Post</span>
+              </button>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-foreground/60">No posts yet. Be the first to share!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {posts.slice(0, 6).map((post) => (
+                <div
+                  key={post._id}
+                  onClick={() => handlePostClick(post)}
+                  className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
+                      {post.author.name.charAt(0)}
                     </div>
-                    <h5 className="text-foreground font-semibold mb-2">{post.title}</h5>
-                    <p className="text-foreground/60 text-sm mb-4">{post.excerpt}</p>
-                    <div className="flex items-center gap-4 text-foreground/60 text-sm">
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>{post.replies} replies</span>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="text-lg font-bold text-foreground">{post.author.name}</h4>
+                          <p className="text-amber-400/80 text-xs">{post.author.batch || 'Alumni'}</p>
+                        </div>
+                        <span className="text-foreground/50 text-xs">{getTimeAgo(post.createdAt)}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Heart className="w-4 h-4" />
-                        <span>{post.likes} likes</span>
+                      <h5 className="text-foreground font-semibold mb-2">{post.title}</h5>
+                      <p className="text-foreground/60 text-sm mb-4 line-clamp-2">{post.content}</p>
+                      <div className="flex items-center gap-4 text-foreground/60 text-sm">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>{post.replies.length} replies</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Heart className="w-4 h-4" />
+                          <span>{post.likes.length} likes</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CTA */}
@@ -219,7 +286,7 @@ const CommunitySection = () => {
             onClick={handleExploreClick}
             className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-4 text-base font-medium text-white hover:scale-105 transition-all shadow-lg"
           >
-            Start Exploring
+            {isAuthenticated ? 'Create Your First Post' : 'Start Exploring'}
           </button>
         </div>
       </div>
@@ -228,6 +295,13 @@ const CommunitySection = () => {
         isOpen={isPostModalOpen} 
         onClose={() => setIsPostModalOpen(false)}
         post={selectedPost}
+        onPostUpdate={handlePostUpdated}
+        onPostDelete={handlePostDeleted}
+      />
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onPostCreated={handlePostCreated}
       />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>

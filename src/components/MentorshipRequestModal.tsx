@@ -55,7 +55,19 @@ const MentorshipRequestModal = ({ isOpen, onClose, mentor }: MentorshipRequestMo
       }, 2000);
     } catch (err: unknown) {
       console.error("Mentorship request failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to send request. Please try again.");
+      
+      // Extract error message from API response
+      let errorMessage = "Failed to send request. Please try again.";
+      if (err && typeof err === 'object' && 'response' in err) {
+        const error = err as { response?: { data?: { message?: string } } };
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
