@@ -1,6 +1,11 @@
 import { Quote, Star } from "lucide-react";
+import { useState } from "react";
+import AuthModal from "./AuthModal";
+import { useAuth } from "../contexts/AuthContext";
 
 const TestimonialsSection = () => {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
   const testimonials = [
     {
       name: "Rahul Verma",
@@ -134,11 +139,16 @@ const TestimonialsSection = () => {
           <h3 className="text-2xl font-bold text-foreground mb-4">
             Ready to Write Your Success Story?
           </h3>
-          <button className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-4 text-base font-medium text-white hover:scale-105 transition-all shadow-lg">
+          <button 
+            onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
+            className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-4 text-base font-medium text-white hover:scale-105 transition-all shadow-lg"
+          >
             Join the Network Today
           </button>
         </div>
       </div>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   );
 };

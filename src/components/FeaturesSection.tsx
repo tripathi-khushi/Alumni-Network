@@ -1,6 +1,11 @@
 import { Users, Calendar, GraduationCap, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import AuthModal from "./AuthModal";
+import { useAuth } from "../contexts/AuthContext";
 
 const FeaturesSection = () => {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
   const features = [
     {
       icon: Users,
@@ -62,11 +67,16 @@ const FeaturesSection = () => {
 
         {/* CTA */}
         <div className="mt-16 text-center">
-          <button className="glass-light rounded-full px-8 py-4 text-base font-medium text-foreground hover:bg-white/20 transition-all hover:scale-105">
+          <button 
+            onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
+            className="glass-light rounded-full px-8 py-4 text-base font-medium text-foreground hover:bg-white/20 transition-all hover:scale-105"
+          >
             Get Started Today
           </button>
         </div>
       </div>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   );
 };

@@ -1,4 +1,8 @@
 import { MessageSquare, TrendingUp, Lightbulb, Briefcase, Heart, Code } from "lucide-react";
+import { useState } from "react";
+import PostDetailModal from "./PostDetailModal";
+import { useAuth } from "../contexts/AuthContext";
+import AuthModal from "./AuthModal";
 
 const CommunitySection = () => {
   const discussions = [
@@ -73,6 +77,26 @@ const CommunitySection = () => {
     { value: "95%", label: "Response Rate" },
   ];
 
+  const [selectedPost, setSelectedPost] = useState<typeof recentPosts[0] | null>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handlePostClick = (post: typeof recentPosts[0]) => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+    } else {
+      setSelectedPost(post);
+      setIsPostModalOpen(true);
+    }
+  };
+
+  const handleExploreClick = () => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+    }
+  };
+
   return (
     <section className="relative z-10 py-24 px-8">
       <div className="max-w-7xl mx-auto">
@@ -146,6 +170,7 @@ const CommunitySection = () => {
             {recentPosts.map((post, index) => (
               <div
                 key={index}
+                onClick={() => handlePostClick(post)}
                 className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
               >
                 <div className="flex items-start gap-4">
@@ -190,11 +215,21 @@ const CommunitySection = () => {
           <p className="text-foreground/60 mb-6 max-w-2xl mx-auto">
             Share your experiences, ask questions, and connect with alumni who share your interests and goals.
           </p>
-          <button className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-4 text-base font-medium text-white hover:scale-105 transition-all shadow-lg">
+          <button 
+            onClick={handleExploreClick}
+            className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-4 text-base font-medium text-white hover:scale-105 transition-all shadow-lg"
+          >
             Start Exploring
           </button>
         </div>
       </div>
+
+      <PostDetailModal 
+        isOpen={isPostModalOpen} 
+        onClose={() => setIsPostModalOpen(false)}
+        post={selectedPost}
+      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   );
 };

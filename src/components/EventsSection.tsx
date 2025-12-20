@@ -1,44 +1,39 @@
 import { Calendar, MapPin, Users, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import EventRegistrationModal from "./EventRegistrationModal";
+import { useAuth } from "../contexts/AuthContext";
+import AuthModal from "./AuthModal";
+import api from "../lib/api";
+
+interface Event {
+  _id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  category: string;
+  attendees: Array<{ user: string; name: string; email: string }>;
+}
 
 const EventsSection = () => {
-  const upcomingEvents = [
-    {
-      title: "Tech Leadership Summit 2025",
-      date: "January 15, 2025",
-      time: "10:00 AM - 4:00 PM",
-      location: "Virtual Event",
-      attendees: 120,
-      category: "Networking",
-      description: "Join industry leaders for insights on modern tech leadership and innovation strategies.",
-    },
-    {
-      title: "Annual Alumni Reunion",
-      date: "February 20, 2025",
-      time: "6:00 PM - 10:00 PM",
-      location: "Campus Auditorium",
-      attendees: 250,
-      category: "Reunion",
-      description: "Reconnect with your batchmates and celebrate memories at our annual reunion.",
-    },
-    {
-      title: "Career Workshop: AI & ML",
-      date: "January 28, 2025",
-      time: "2:00 PM - 5:00 PM",
-      location: "Online",
-      attendees: 85,
-      category: "Workshop",
-      description: "Hands-on workshop covering AI/ML fundamentals and career opportunities.",
-    },
-    {
-      title: "Startup Pitch Night",
-      date: "March 5, 2025",
-      time: "7:00 PM - 9:00 PM",
-      location: "Innovation Hub",
-      attendees: 60,
-      category: "Entrepreneurship",
-      description: "Watch alumni entrepreneurs pitch their startups and network with investors.",
-    },
-  ];
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await api.get('/events');
+        console.log('Fetched events:', response.data);
+        setUpcomingEvents(response.data);
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const eventCategories = [
     { name: "Networking", count: 12 },
@@ -46,6 +41,20 @@ const EventsSection = () => {
     { name: "Reunions", count: 4 },
     { name: "Webinars", count: 15 },
   ];
+
+  const [selectedEvent, setSelectedEvent] = useState<typeof upcomingEvents[0] | null>(null);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handleRegisterClick = (event: typeof upcomingEvents[0]) => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+    } else {
+      setSelectedEvent(event);
+      setIsRegistrationModalOpen(true);
+    }
+  };
 
   return (
     <section className="relative z-10 py-24 px-8">
@@ -78,7 +87,16 @@ const EventsSection = () => {
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {upcomingEvents.map((event, index) => (
+          {loading ? (
+            <div className="col-span-2 text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400 mx-auto mb-4"></div>
+              <p className="text-foreground/60">Loading events...</p>
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="col-span-2 text-center py-12">
+              <p className="text-foreground/60">No events available at the moment.</p>
+            </div>
+          ) : upcomingEvents.map((event, index) => (
             <div
               key={index}
               className="glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-300 glow-soft group"
@@ -89,7 +107,7 @@ const EventsSection = () => {
                 </div>
                 <div className="flex items-center gap-1 text-foreground/60 text-sm">
                   <Users className="w-4 h-4" />
-                  <span>{event.attendees}</span>
+                  <span>{event.attendees?.length || 0}</span>
                 </div>
               </div>
 
@@ -115,7 +133,10 @@ const EventsSection = () => {
                 </div>
               </div>
 
-              <button className="w-full glass-light rounded-full py-3 text-sm font-medium text-foreground hover:bg-white/20 transition-all group-hover:scale-105">
+              <button 
+                onClick={() => handleRegisterClick(event)}
+                className="w-full glass-light rounded-full py-3 text-sm font-medium text-foreground hover:bg-white/20 transition-all group-hover:scale-105"
+              >
                 Register Now
               </button>
             </div>
@@ -131,15 +152,28 @@ const EventsSection = () => {
             Subscribe to our event calendar and get notified about upcoming events, workshops, and networking opportunities.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="glass-light rounded-full px-8 py-3 text-base font-medium text-foreground hover:bg-white/20 transition-all hover:scale-105">
+            <button 
+              onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
+              className="glass-light rounded-full px-8 py-3 text-base font-medium text-foreground hover:bg-white/20 transition-all hover:scale-105"
+            >
               View All Events
             </button>
-            <button className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-3 text-base font-medium text-white hover:scale-105 transition-all shadow-lg">
+            <button 
+              onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
+              className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-full px-8 py-3 text-base font-medium text-white hover:scale-105 transition-all shadow-lg"
+            >
               Subscribe to Calendar
             </button>
           </div>
         </div>
       </div>
+
+      <EventRegistrationModal 
+        isOpen={isRegistrationModalOpen} 
+        onClose={() => setIsRegistrationModalOpen(false)}
+        event={selectedEvent}
+      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   );
 };

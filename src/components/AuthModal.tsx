@@ -34,8 +34,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       }
       onClose();
       setFormData({ name: "", email: "", password: "" });
-    } catch (err: any) {
-      setError(err.message || "An error occurred. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

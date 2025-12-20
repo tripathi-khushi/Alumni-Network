@@ -1,4 +1,8 @@
 import { UserCheck, Target, TrendingUp, Award } from "lucide-react";
+import { useState } from "react";
+import MentorshipRequestModal from "./MentorshipRequestModal";
+import { useAuth } from "../contexts/AuthContext";
+import AuthModal from "./AuthModal";
 
 const MentorshipSection = () => {
   const mentorshipStats = [
@@ -31,6 +35,20 @@ const MentorshipSection = () => {
       batch: "Class of 2016",
     },
   ];
+
+  const [selectedMentor, setSelectedMentor] = useState<typeof mentorProfiles[0] | null>(null);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handleMentorshipRequest = (mentor: typeof mentorProfiles[0]) => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+    } else {
+      setSelectedMentor(mentor);
+      setIsRequestModalOpen(true);
+    }
+  };
 
   return (
     <section className="relative z-10 py-24 px-8">
@@ -93,7 +111,10 @@ const MentorshipSection = () => {
                     </span>
                   ))}
                 </div>
-                <button className="w-full glass-light rounded-full py-2 text-sm font-medium text-foreground hover:bg-white/20 transition-all">
+                <button 
+                  onClick={() => handleMentorshipRequest(mentor)}
+                  className="w-full glass-light rounded-full py-2 text-sm font-medium text-foreground hover:bg-white/20 transition-all"
+                >
                   Request Mentorship
                 </button>
               </div>
@@ -120,6 +141,13 @@ const MentorshipSection = () => {
           </div>
         </div>
       </div>
+
+      <MentorshipRequestModal 
+        isOpen={isRequestModalOpen} 
+        onClose={() => setIsRequestModalOpen(false)}
+        mentor={selectedMentor}
+      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   );
 };
