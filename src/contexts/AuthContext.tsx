@@ -7,6 +7,23 @@ interface User {
   email: string;
   batch?: string;
   role?: string;
+  isMentorAvailable?: boolean;
+  mentorCapacity?: number;
+  activeMentees?: number;
+  availability?: {
+    days: string[];
+    timeSlots: string[];
+    preferredMeetingType: "video" | "audio" | "chat" | "in-person";
+  };
+  mentorshipPreferences?: {
+    topics: string[];
+    experienceLevel: string[];
+    sessionDuration: number;
+  };
+  company?: string;
+  position?: string;
+  expertise?: string[];
+  bio?: string;
 }
 
 interface AuthContextType {

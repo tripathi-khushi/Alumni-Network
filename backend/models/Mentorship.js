@@ -31,6 +31,34 @@ const mentorshipSchema = new mongoose.Schema({
     enum: ['pending', 'accepted', 'rejected', 'completed'],
     default: 'pending',
   },
+  matchScore: {
+    type: Number,
+    default: 0, // Algorithm-based compatibility score (0-100)
+  },
+  scheduledSessions: [{
+    date: Date,
+    duration: Number, // in minutes
+    meetingLink: String,
+    notes: String,
+    completed: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  rejectionReason: String,
+  feedback: {
+    mentorRating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    menteeRating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    comments: String
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -39,6 +67,8 @@ const mentorshipSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  acceptedAt: Date,
+  completedAt: Date,
 });
 
 module.exports = mongoose.model('Mentorship', mentorshipSchema);

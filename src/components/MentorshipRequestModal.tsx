@@ -1,12 +1,16 @@
 import { X, User, Mail, MessageSquare, Target } from "lucide-react";
 import { useState } from "react";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Mentor {
+  _id: string;
   name: string;
-  role: string;
-  company: string;
-  expertise: string[];
-  batch: string;
+  role?: string;
+  company?: string;
+  position?: string;
+  expertise?: string[];
+  batch?: string;
 }
 
 interface MentorshipRequestModalProps {
@@ -16,32 +20,42 @@ interface MentorshipRequestModalProps {
 }
 
 const MentorshipRequestModal = ({ isOpen, onClose, mentor }: MentorshipRequestModalProps) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.name || "",
+    email: user?.email || "",
     goals: "",
     message: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   if (!isOpen || !mentor) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
     try {
-      // TODO: Call backend API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await api.post('/mentorship/request', {
+        mentorId: mentor._id,
+        name: formData.name,
+        email: formData.email,
+        goals: formData.goals,
+        message: formData.message,
+      });
+      
       setSuccess(true);
       setTimeout(() => {
         onClose();
         setSuccess(false);
-        setFormData({ name: "", email: "", goals: "", message: "" });
+        setFormData({ name: user?.name || "", email: user?.email || "", goals: "", message: "" });
       }, 2000);
-    } catch (error) {
-      console.error("Mentorship request failed:", error);
+    } catch (err: unknown) {
+      console.error("Mentorship request failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to send request. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -102,24 +116,32 @@ const MentorshipRequestModal = ({ isOpen, onClose, mentor }: MentorshipRequestMo
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-foreground mb-1">{mentor.name}</h3>
-                  <p className="text-foreground/70 text-sm mb-1">{mentor.role}</p>
-                  <p className="text-foreground/60 text-xs mb-2">{mentor.company}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {mentor.expertise.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="glass-light rounded-full px-2 py-1 text-xs text-foreground/80"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-foreground/70 text-sm mb-1">{mentor.role || mentor.position || 'Mentor'}</p>
+                  <p className="text-foreground/60 text-xs mb-2">{mentor.company || 'Alumni'}</p>
+                  {mentor.expertise && mentor.expertise.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {mentor.expertise.map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="glass-light rounded-full px-2 py-1 text-xs text-foreground/80"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="glass-dark rounded-lg p-3 border border-red-500/20">
+                  <p className="text-red-400 text-sm text-center">{error}</p>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-foreground text-sm font-medium mb-2">
                   Your Name

@@ -39,6 +39,42 @@ const userSchema = new mongoose.Schema({
   company: String,
   position: String,
   expertise: [String],
+  // Mentor-specific fields
+  isMentorAvailable: {
+    type: Boolean,
+    default: false,
+  },
+  mentorCapacity: {
+    type: Number,
+    default: 5, // Maximum number of mentees
+  },
+  activeMentees: {
+    type: Number,
+    default: 0,
+  },
+  availability: {
+    days: [{
+      type: String,
+      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    }],
+    timeSlots: [String], // e.g., "9:00 AM - 11:00 AM"
+    preferredMeetingType: {
+      type: String,
+      enum: ['video', 'audio', 'chat', 'in-person'],
+      default: 'video'
+    }
+  },
+  mentorshipPreferences: {
+    topics: [String], // Specific topics they can mentor on
+    experienceLevel: [{
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced']
+    }],
+    sessionDuration: {
+      type: Number,
+      default: 60 // in minutes
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now,
