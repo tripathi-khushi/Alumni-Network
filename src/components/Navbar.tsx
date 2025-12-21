@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import AuthModal from "./AuthModal";
+import NotificationBell from "./NotificationBell";
 import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
@@ -66,6 +67,7 @@ const Navbar = () => {
           {/* Desktop CTA Button */}
           {isAuthenticated ? (
             <div className="hidden md:flex items-center gap-3">
+              <NotificationBell />
               <Link 
                 to="/profile"
                 className="flex items-center gap-2 glass-dark rounded-full px-4 py-2 hover:bg-white/10 transition-all"

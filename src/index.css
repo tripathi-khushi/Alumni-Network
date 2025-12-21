@@ -49,6 +49,10 @@ html {
   animation: fade-in 0.4s ease-out;
 }
 
+.animate-fadeIn {
+  animation: fade-in 0.2s ease-out;
+}
+
 /* Animation delays */
 .delay-100 {
   animation-delay: 100ms;

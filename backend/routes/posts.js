@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 
 // Get all posts
@@ -80,6 +82,19 @@ router.post('/:id/reply', auth, async (req, res) => {
     });
 
     await post.save();
+    
+    // Create notification for post author (if not replying to own post)
+    if (post.author.toString() !== req.user.id) {
+      const replyAuthor = await User.findById(req.user.id).select('name');
+      await Notification.create({
+        userId: post.author,
+        type: 'post_reply',
+        title: 'New Reply on Your Post',
+        message: `${replyAuthor.name} replied to your post: "${post.title}"`,
+        relatedId: post._id,
+        relatedModel: 'Post'
+      });
+    }
     
     const populatedPost = await Post.findById(post._id)
       .populate('author', 'name email batch company role')

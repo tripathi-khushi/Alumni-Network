@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Mentorship = require('../models/Mentorship');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { sendEmail, emailTemplates } = require('../services/emailService');
 
@@ -103,6 +104,16 @@ router.post('/request', auth, async (req, res) => {
 
     await mentorshipRequest.save();
 
+    // Create in-app notification for mentor
+    await Notification.create({
+      userId: mentorId,
+      type: 'mentorship_request',
+      title: 'New Mentorship Request',
+      message: `${name} has requested your mentorship`,
+      relatedId: mentorshipRequest._id,
+      relatedModel: 'Mentorship'
+    });
+
     // Send email notification to mentor
     const emailTemplate = emailTemplates.mentorshipRequest(
       mentor.name,
@@ -152,6 +163,16 @@ router.put('/:id/status', auth, async (req, res) => {
       const mentor = await User.findById(req.user.id);
       const mentee = await User.findById(mentorshipRequest.menteeId);
       if (mentee) {
+        // Create in-app notification for mentee
+        await Notification.create({
+          userId: mentorshipRequest.menteeId,
+          type: 'mentorship_accepted',
+          title: '🎉 Mentorship Request Accepted!',
+          message: `${mentor.name} accepted your mentorship request`,
+          relatedId: mentorshipRequest._id,
+          relatedModel: 'Mentorship'
+        });
+        
         const emailTemplate = emailTemplates.mentorshipAccepted(
           mentee.name,
           mentee.email,
@@ -169,6 +190,16 @@ router.put('/:id/status', auth, async (req, res) => {
       const mentee = await User.findById(mentorshipRequest.menteeId);
       const mentor = await User.findById(req.user.id);
       if (mentee) {
+        // Create in-app notification for mentee
+        await Notification.create({
+          userId: mentorshipRequest.menteeId,
+          type: 'mentorship_rejected',
+          title: 'Mentorship Request Update',
+          message: `${mentor.name} is unable to mentor at this time${rejectionReason ? ': ' + rejectionReason : ''}`,
+          relatedId: mentorshipRequest._id,
+          relatedModel: 'Mentorship'
+        });
+        
         const emailTemplate = emailTemplates.mentorshipRejected(
           mentee.name,
           mentor.name,

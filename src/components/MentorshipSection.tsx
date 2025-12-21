@@ -34,7 +34,7 @@ const MentorshipSection = () => {
     const fetchMentors = async () => {
       try {
         const response = await api.get('/mentorship/mentors?availability=true');
-        setMentorProfiles(response.data.slice(0, 6)); // Show first 6 mentors
+        setMentorProfiles(response.data); // Show all available mentors
       } catch (error) {
         console.error('Failed to fetch mentors:', error);
         // Fallback to dummy data if API fails
