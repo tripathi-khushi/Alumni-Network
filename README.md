@@ -1,4 +1,4 @@
-# Khushi Project React Gemini
+# Alumni Management System
 
 ## Project info
 
