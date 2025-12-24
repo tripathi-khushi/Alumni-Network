@@ -22,6 +22,7 @@ app.use('/api/events', require('./routes/events'));
 app.use('/api/mentorship', require('./routes/mentorship'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/messages', require('./routes/messages'));
 
 // Health Check
 app.get('/api/health', (req, res) => {

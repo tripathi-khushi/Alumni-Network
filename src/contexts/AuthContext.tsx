@@ -45,25 +45,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Load user from localStorage on mount
   useEffect(() => {
+    console.log('AuthContext: Loading stored auth data...');
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
     if (storedToken && storedUser) {
+      console.log('AuthContext: Found stored auth data', { token: storedToken.substring(0, 20) + '...', user: JSON.parse(storedUser).email });
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+    } else {
+      console.log('AuthContext: No stored auth data found');
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('AuthContext: Attempting login for', email);
       const response = await loginService({ email, password });
+      console.log('AuthContext: Login successful', { token: response.token.substring(0, 20) + '...', userId: response.user.id });
       setToken(response.token);
       setUser(response.user);
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
+      console.error('AuthContext: Login failed', err.response?.data?.message);
       throw new Error(err.response?.data?.message || 'Login failed');
     }
   };

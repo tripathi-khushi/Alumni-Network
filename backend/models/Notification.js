@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['mentorship_request', 'mentorship_accepted', 'mentorship_rejected', 'event_reminder', 'post_reply', 'event_registration'],
+    enum: ['mentorship_request', 'mentorship_accepted', 'mentorship_rejected', 'event_reminder', 'post_reply', 'event_registration', 'message'],
     required: true
   },
   title: {

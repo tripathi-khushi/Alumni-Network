@@ -1,25 +1,25 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('./backend/models/User');
+const User = require('./models/User');
 
 const resetPassword = async () => {
   try {
     await mongoose.connect('mongodb://localhost:27017/alumni-network');
     console.log('✅ MongoDB Connected');
 
-    const mentor = await User.findOne({ email: 'tripskhushi2021@gmail.com' });
+    const user = await User.findOne({ email: 'tripskhushi2021@gmail.com' });
     
-    if (mentor) {
-      console.log('Found user:', mentor.name);
-      console.log('Email:', mentor.email);
+    if (user) {
+      console.log('Found user:', user.name);
+      console.log('Email:', user.email);
       
-      // Set new password - NOTE: Will be double hashed, so we need to bypass the pre-save hook
+      // Set new password - update directly to avoid double hashing
       const newPassword = 'Khushi@123';
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       
       // Update directly without triggering the pre-save hook
       await User.updateOne(
-        { _id: mentor._id },
+        { _id: user._id },
         { $set: { password: hashedPassword } }
       );
       

@@ -143,10 +143,14 @@ const Navbar = () => {
               </Link>
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-2 glass-dark rounded-lg px-4 py-2 mt-2">
+                  <Link 
+                    to="/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 glass-dark rounded-lg px-4 py-2 mt-2 hover:bg-white/10 transition-all"
+                  >
                     <User className="w-4 h-4 text-amber-400" />
                     <span className="text-foreground text-sm">{user?.name}</span>
-                  </div>
+                  </Link>
                   <button 
                     onClick={handleLogout}
                     className="glass-light rounded-full px-5 py-2 text-sm font-medium text-foreground hover:bg-white/20 transition-all flex items-center justify-center gap-2"

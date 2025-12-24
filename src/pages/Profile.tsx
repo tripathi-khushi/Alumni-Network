@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import CreatePostModal from "../components/CreatePostModal";
+import MentorshipChat from "../components/MentorshipChat";
 import { User, Mail, Briefcase, Calendar, MapPin, Edit2, Check, X, MessageSquare, Users, Award, Clock, CheckCircle, XCircle, AlertCircle, Trash2, RefreshCw, ExternalLink, ArrowRight } from "lucide-react";
 import api from "../lib/api";
 
@@ -34,7 +35,7 @@ interface Post {
   category: string;
   createdAt: string;
   likes: string[];
-  replies: any[];
+  replies: unknown[];
 }
 
 interface Event {
@@ -60,6 +61,8 @@ interface Mentorship {
     _id: string;
     name: string;
     email: string;
+    company?: string;
+    position?: string;
   };
   status: 'pending' | 'accepted' | 'rejected' | 'completed';
   goals: string;
@@ -82,6 +85,8 @@ const Profile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedMentorship, setSelectedMentorship] = useState<Mentorship | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -94,14 +99,75 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    fetchProfile();
-    fetchStats();
-    fetchRecentActivity();
+    console.log('Profile: Loading data...');
+    
+    // Fetch profile
+    const loadProfile = async () => {
+      try {
+        const response = await api.get('/users/me/profile');
+        console.log('Profile response:', response.data);
+        setProfile(response.data);
+        setEditForm({
+          name: response.data.name || "",
+          email: response.data.email || "",
+          batch: response.data.batch || "",
+          company: response.data.company || "",
+          position: response.data.position || "",
+          bio: response.data.bio || "",
+          isMentorAvailable: response.data.isMentorAvailable || false,
+          mentorCapacity: response.data.mentorCapacity || 5,
+        });
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch stats
+    const loadStats = async () => {
+      try {
+        const response = await api.get('/users/me/stats');
+        console.log('Stats response:', response.data);
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    // Fetch recent activity
+    const loadActivity = async () => {
+      try {
+        console.log('Fetching recent activity...');
+        const [postsRes, eventsRes, mentorshipsRes] = await Promise.all([
+          api.get('/users/me/posts'),
+          api.get('/users/me/events'),
+          api.get('/users/me/mentorships'),
+        ]);
+        
+        console.log('Posts:', postsRes.data);
+        console.log('Events:', eventsRes.data);
+        console.log('Mentorships:', mentorshipsRes.data);
+        
+        setRecentPosts(postsRes.data.slice(0, 5));
+        setRegisteredEvents(eventsRes.data.filter((event: Event) => new Date(event.date) >= new Date()).slice(0, 5));
+        setMentorships(mentorshipsRes.data.filter((m: Mentorship) => m.status === 'pending' || m.status === 'accepted'));
+      } catch (error) {
+        console.error('Error fetching recent activity:', error);
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+
+    loadProfile();
+    loadStats();
+    loadActivity();
   }, []);
 
   const fetchProfile = async () => {
     try {
       const response = await api.get('/users/me/profile');
+      console.log('Profile response:', response.data);
       setProfile(response.data);
       setEditForm({
         name: response.data.name || "",
@@ -115,14 +181,13 @@ const Profile = () => {
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchStats = async () => {
     try {
       const response = await api.get('/users/me/stats');
+      console.log('Stats response:', response.data);
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -131,19 +196,22 @@ const Profile = () => {
 
   const fetchRecentActivity = async () => {
     try {
+      console.log('Fetching recent activity...');
       const [postsRes, eventsRes, mentorshipsRes] = await Promise.all([
         api.get('/users/me/posts'),
         api.get('/users/me/events'),
         api.get('/users/me/mentorships'),
       ]);
       
-      setRecentPosts(postsRes.data.slice(0, 5)); // Show only 5 most recent posts
-      setRegisteredEvents(eventsRes.data.filter((event: Event) => new Date(event.date) >= new Date()).slice(0, 5)); // Upcoming events only
+      console.log('Posts:', postsRes.data);
+      console.log('Events:', eventsRes.data);
+      console.log('Mentorships:', mentorshipsRes.data);
+      
+      setRecentPosts(postsRes.data.slice(0, 5));
+      setRegisteredEvents(eventsRes.data.filter((event: Event) => new Date(event.date) >= new Date()).slice(0, 5));
       setMentorships(mentorshipsRes.data.filter((m: Mentorship) => m.status === 'pending' || m.status === 'accepted'));
     } catch (error) {
       console.error('Error fetching recent activity:', error);
-    } finally {
-      setActivityLoading(false);
     }
   };
 
@@ -262,10 +330,16 @@ const Profile = () => {
     fetchStats();
   };
 
+  const handleOpenChat = (mentorship: Mentorship) => {
+    setSelectedMentorship(mentorship);
+    setChatOpen(true);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400 mb-4"></div>
+        <p className="text-foreground/60">Loading profile...</p>
       </div>
     );
   }
@@ -658,8 +732,18 @@ const Profile = () => {
             ) : mentorships.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mentorships.map((mentorship) => {
+                  // Check if mentorship data is valid
+                  if (!mentorship.mentorId || !mentorship.menteeId) {
+                    return null;
+                  }
+                  
                   const isMentor = mentorship.mentorId._id === authUser?.id;
                   const otherPerson = isMentor ? mentorship.menteeId : mentorship.mentorId;
+                  
+                  // Additional safety check
+                  if (!otherPerson || !otherPerson.name) {
+                    return null;
+                  }
                   
                   return (
                     <div key={mentorship._id} className="glass-dark rounded-lg p-4 hover:bg-white/10 transition-all">
@@ -688,6 +772,15 @@ const Profile = () => {
                           <span>Started: {formatDate(mentorship.acceptedAt)}</span>
                         )}
                       </div>
+                      {mentorship.status === 'accepted' && (
+                        <button
+                          onClick={() => handleOpenChat(mentorship)}
+                          className="w-full mt-3 bg-blue-500/20 text-blue-400 rounded-lg px-3 py-2 text-sm hover:bg-blue-500/30 transition-all flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          Send Message
+                        </button>
+                      )}
                       {isMentor && mentorship.status === 'pending' && (
                         <div className="flex gap-2 mt-3">
                           <button
@@ -738,6 +831,23 @@ const Profile = () => {
           isOpen={showCreatePost}
           onClose={() => setShowCreatePost(false)}
           onPostCreated={handlePostCreated}
+        />
+      )}
+
+      {/* Mentorship Chat Modal */}
+      {chatOpen && selectedMentorship && (
+        <MentorshipChat
+          isOpen={chatOpen}
+          onClose={() => {
+            setChatOpen(false);
+            setSelectedMentorship(null);
+          }}
+          mentorshipId={selectedMentorship._id}
+          otherPerson={
+            selectedMentorship.mentorId._id === authUser?.id
+              ? selectedMentorship.menteeId
+              : selectedMentorship.mentorId
+          }
         />
       )}
     </div>

@@ -20,10 +20,12 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    // Attach user to request
+    // Attach user to request with both user object and id for compatibility
     req.user = user;
+    req.user.id = user._id.toString();
     next();
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(401).json({ message: 'Token is not valid' });
   }
 };

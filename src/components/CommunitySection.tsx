@@ -233,40 +233,47 @@ const CommunitySection = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {posts.slice(0, 6).map((post) => (
-                <div
-                  key={post._id}
-                  onClick={() => handlePostClick(post)}
-                  className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                      {post.author.name.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="text-lg font-bold text-foreground">{post.author.name}</h4>
-                          <p className="text-amber-400/80 text-xs">{post.author.batch || 'Alumni'}</p>
-                        </div>
-                        <span className="text-foreground/50 text-xs">{getTimeAgo(post.createdAt)}</span>
+              {posts.slice(0, 6).map((post) => {
+                // Skip posts with missing author data
+                if (!post.author || !post.author.name) {
+                  return null;
+                }
+                
+                return (
+                  <div
+                    key={post._id}
+                    onClick={() => handlePostClick(post)}
+                    className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
+                        {post.author.name.charAt(0)}
                       </div>
-                      <h5 className="text-foreground font-semibold mb-2">{post.title}</h5>
-                      <p className="text-foreground/60 text-sm mb-4 line-clamp-2">{post.content}</p>
-                      <div className="flex items-center gap-4 text-foreground/60 text-sm">
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="w-4 h-4" />
-                          <span>{post.replies.length} replies</span>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="text-lg font-bold text-foreground">{post.author.name}</h4>
+                            <p className="text-amber-400/80 text-xs">{post.author.batch || 'Alumni'}</p>
+                          </div>
+                          <span className="text-foreground/50 text-xs">{getTimeAgo(post.createdAt)}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Heart className="w-4 h-4" />
-                          <span>{post.likes.length} likes</span>
+                        <h5 className="text-foreground font-semibold mb-2">{post.title}</h5>
+                        <p className="text-foreground/60 text-sm mb-4 line-clamp-2">{post.content}</p>
+                        <div className="flex items-center gap-4 text-foreground/60 text-sm">
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="w-4 h-4" />
+                            <span>{post.replies.length} replies</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Heart className="w-4 h-4" />
+                            <span>{post.likes.length} likes</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
