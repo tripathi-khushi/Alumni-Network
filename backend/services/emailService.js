@@ -7,7 +7,7 @@ const createTransporter = () => {
   
   if (process.env.NODE_ENV === 'production') {
     // Production email config (e.g., Gmail, SendGrid, AWS SES)
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       secure: true,
@@ -18,7 +18,7 @@ const createTransporter = () => {
     });
   } else {
     // Development: Log emails to console instead of sending
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
       auth: {
@@ -31,6 +31,76 @@ const createTransporter = () => {
 
 // Email templates
 const emailTemplates = {
+  verificationEmail: (userName, verificationLink) => ({
+    subject: '🎓 Verify Your Email - Alumni Network',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }
+          .content { background: #f9fafb; padding: 40px 30px; border-radius: 0 0 10px 10px; }
+          .card { background: white; padding: 25px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+          .button { display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; margin: 15px 0; font-weight: 600; }
+          .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+          .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 28px;">🎓 Welcome to Alumni Network!</h1>
+          </div>
+          <div class="content">
+            <p style="font-size: 16px;">Hi <strong>${userName}</strong>,</p>
+            <p>Thank you for joining our Alumni Network! We're excited to have you as part of our community.</p>
+            
+            <div class="card">
+              <h2 style="color: #f59e0b; margin-top: 0;">Verify Your Email Address</h2>
+              <p>To complete your registration and access all features, please verify your email address by clicking the button below:</p>
+              
+              <a href="${verificationLink}" class="button">Verify Email Address</a>
+              
+              <p style="margin-top: 20px; font-size: 14px; color: #666;">This link will expire in 24 hours.</p>
+            </div>
+
+            <div class="warning">
+              <p style="margin: 0; font-size: 14px;"><strong>⏰ Action Required:</strong> You won't be able to log in until you verify your email address.</p>
+            </div>
+
+            <p style="font-size: 14px; color: #666; margin-top: 25px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="font-size: 12px; word-break: break-all; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">${verificationLink}</p>
+            
+            <div class="footer">
+              <p><strong>Didn't create an account?</strong></p>
+              <p>If you didn't sign up for Alumni Network, please ignore this email or contact support if you have concerns.</p>
+              <p style="margin-top: 15px;">© ${new Date().getFullYear()} Alumni Network Platform. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Welcome to Alumni Network!
+
+      Hi ${userName},
+
+      Thank you for joining our Alumni Network! To complete your registration, please verify your email address.
+
+      Click this link to verify: ${verificationLink}
+
+      This link will expire in 24 hours.
+
+      Note: You won't be able to log in until you verify your email address.
+
+      If you didn't create an account, please ignore this email.
+
+      © ${new Date().getFullYear()} Alumni Network Platform
+    `,
+  }),
   mentorshipRequest: (mentorName, menteeName, menteeEmail, goals, message) => ({
     subject: `New Mentorship Request from ${menteeName}`,
     html: `
@@ -282,29 +352,41 @@ const emailTemplates = {
 // Send email function
 const sendEmail = async (to, template) => {
   try {
-    // In development, just log the email instead of sending
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('\n=== EMAIL NOTIFICATION ===');
-      console.log('To:', to);
-      console.log('Subject:', template.subject);
-      console.log('Content:', template.text);
+    console.log('\n=== SENDING EMAIL ===');
+    console.log('To:', to);
+    console.log('Subject:', template.subject);
+    
+    // Check if email credentials are configured
+    const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+    
+    if (!hasEmailConfig) {
+      console.log('⚠️  EMAIL NOT CONFIGURED!');
+      console.log('Please set up email credentials in your .env file:');
+      console.log('For Gmail:');
+      console.log('  EMAIL_HOST=smtp.gmail.com');
+      console.log('  EMAIL_PORT=587');
+      console.log('  EMAIL_USER=your-email@gmail.com');
+      console.log('  EMAIL_PASSWORD=your-app-password');
+      console.log('  EMAIL_FROM="Alumni Network" <your-email@gmail.com>');
+      console.log('\nNote: For Gmail, you need to use an App Password, not your regular password.');
+      console.log('Generate one at: https://myaccount.google.com/apppasswords');
       console.log('========================\n');
-      return { success: true, messageId: 'dev-mode' };
+      return { success: false, error: 'Email not configured' };
     }
 
-    // For production, you would configure nodemailer here
-    const transporter = require('nodemailer').createTransporter({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: true,
+    // Use real email service with environment variables
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT) || 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
     });
-    
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || '"Alumni Network" <noreply@alumninetwork.com>',
+      from: process.env.EMAIL_FROM || `"Alumni Network" <${process.env.EMAIL_USER}>`,
       to,
       subject: template.subject,
       text: template.text,
@@ -312,10 +394,25 @@ const sendEmail = async (to, template) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    
+    console.log('✅ Email sent successfully to real inbox!');
+    console.log('Message ID:', info.messageId);
+    console.log('Recipient:', to);
+    console.log('========================\n');
+    
+    return { 
+      success: true, 
+      messageId: info.messageId
+    };
   } catch (error) {
-    console.error('Email sending failed:', error);
+    console.error('❌ Email sending failed:', error);
+    console.error('Error details:', error.message);
+    console.log('\n💡 Troubleshooting tips:');
+    console.log('1. Make sure EMAIL_USER and EMAIL_PASSWORD are set in .env');
+    console.log('2. For Gmail, use an App Password (not your regular password)');
+    console.log('3. Check that "Less secure app access" is enabled (if not using App Password)');
+    console.log('4. Verify your EMAIL_HOST and EMAIL_PORT are correct');
+    console.log('========================\n');
     // Don't throw error, just log it so the app continues working
     return { success: false, error: error.message };
   }

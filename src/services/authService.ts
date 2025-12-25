@@ -54,3 +54,15 @@ export const updateProfile = async (data: Partial<RegisterData>) => {
   const response = await api.put('/auth/profile', data);
   return response.data;
 };
+
+// Verify email
+export const verifyEmail = async (token: string) => {
+  const response = await api.get(`/auth/verify-email/${token}`);
+  return response.data;
+};
+
+// Resend verification email
+export const resendVerification = async (email: string) => {
+  const response = await api.post('/auth/resend-verification', { email });
+  return response.data;
+};
